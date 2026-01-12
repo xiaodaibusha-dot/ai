@@ -1,61 +1,47 @@
-// chat.js
-document.addEventListener("DOMContentLoaded", function () {
-    const messageBox = document.getElementById("message-box");
-    const sendButton = document.getElementById("send-button");
-    const chatArea = document.getElementById("chat-area");
-    const loadingIndicator = document.getElementById("loading-indicator"); // 加载指示器
+window.onload = function() {
+    // 生成一个唯一的会话ID
+    const sessionId = uuid.v4();  // 使用 uuid 库生成一个唯一的会话ID
+    const sendButton = document.getElementById('send-btn');
+    const userMessageInput = document.getElementById('question');
+    const answerContainer = document.getElementById('answer');
 
-    // 显示或隐藏加载指示器
-    function toggleLoading(isLoading) {
-        if (isLoading) {
-            loadingIndicator.style.display = "block"; // 显示加载指示器
-        } else {
-            loadingIndicator.style.display = "none"; // 隐藏加载指示器
+    sendButton.addEventListener('click', function() {
+        const userMessage = userMessageInput.value.trim();
+
+        if (!userMessage) {
+            alert("请输入有效的消息！");
+            return;
         }
-    }
 
-    sendButton.addEventListener("click", async function () {
-        const userMessage = messageBox.value;
-        if (userMessage.trim() === "") return;
+        // 显示正在获取的提示
+        answerContainer.textContent = "正在获取AI建议...";
 
-        const sessionId = localStorage.getItem("session_id") || Date.now(); // 保存 session_id
-        localStorage.setItem("session_id", sessionId);
+        // 清空用户输入框
+        userMessageInput.value = '';
 
-        // 显示用户消息
-        chatArea.innerHTML += `<div class="user-message">${userMessage}</div>`;
-        messageBox.value = "";
-
-        // 显示加载状态
-        toggleLoading(true);
-
-        try {
-            const response = await fetch("http://your-server-ip/chat", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    message: userMessage,
-                    session_id: sessionId,
-                }),
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                const reply = data.reply;
-
-                // 显示 AI 回复
-                chatArea.innerHTML += `<div class="ai-message">${reply}</div>`;
-                chatArea.scrollTop = chatArea.scrollHeight; // 滚动到底部
+        // 向后端发送请求
+        fetch('/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: userMessage,
+                session_id: sessionId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // 检查后台返回的数据，并更新页面上的答案
+            if (data.reply) {
+                answerContainer.textContent = data.reply;  // 显示AI的回复
             } else {
-                throw new Error("API 请求失败");
+                answerContainer.textContent = "请求失败，请稍后再试。";
             }
-        } catch (error) {
+        })
+        .catch(error => {
             console.error("请求失败", error);
-            chatArea.innerHTML += `<div class="error-message">系统错误，请稍后再试</div>`;
-        } finally {
-            // 隐藏加载状态
-            toggleLoading(false);
-        }
+            answerContainer.textContent = "请求失败，请稍后再试。";
+        });
     });
-});
+};
