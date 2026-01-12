@@ -8,8 +8,9 @@ import os
 with open("hiking_knowledge.txt", "r", encoding="utf-8") as f:
     HIKING_KNOWLEDGE = f.read()
 
-# 请使用你的 Deepseek API 密钥
-client = openai.Client(api_key="your_api_key", base_url="https://api.deepseek.com/v1")
+# 请使用你正确的 API 密钥
+openai.api_key = "your_api_key"
+openai.api_base = "https://api.deepseek.com/v1"  # 设置 Deepseek API 基本地址
 
 app = FastAPI()
 
@@ -75,12 +76,14 @@ def chat(req: ChatReq):
 
     # 通过模型获取回应
     try:
-        resp = client.chat.completions.create(
-            model="deepseek-chat", 
-            messages=messages
+        # 使用 openai 的正确方法调用 Deepseek API
+        resp = openai.Completion.create(
+            model="text-davinci-003",  # 根据 Deepseek 配置模型
+            prompt=messages,
+            max_tokens=150
         )
 
-        reply = resp.choices[0].message.content
+        reply = resp.choices[0].text.strip()
 
         # 更新历史对话
         history.append({"role": "user", "content": req.message})
