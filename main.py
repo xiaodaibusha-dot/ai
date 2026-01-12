@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from openai import OpenAI
+import openai
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
@@ -9,7 +9,7 @@ with open("hiking_knowledge.txt", "r", encoding="utf-8") as f:
     HIKING_KNOWLEDGE = f.read()
 
 
-client = OpenAI(api_key="sk-f05f28f51f7b4b49aeb45ec3391efe61",
+client = openai(api_key="sk-f05f28f51f7b4b49aeb45ec3391efe61",
     base_url="https://api.deepseek.com/v1")
 
 app = FastAPI()
