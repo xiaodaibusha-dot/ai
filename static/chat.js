@@ -1,44 +1,48 @@
-import { v4 as uuidv4 } from 'uuid';
+// chat.js 文件
 
-document.addEventListener("DOMContentLoaded", function() {
-    // 检查浏览器是否支持 crypto.randomUUID()，如果不支持，则使用 uuid 库生成 UUID
-    if (!crypto.randomUUID) {
-        crypto.randomUUID = function () {
-            // Polyfill UUID生成方法（简化版示例）
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        };
+// 如果你需要引入其他模块，可以在这里做
+// 例如导入一个库
+// import { someFunction } from './someModule.js';
+
+// 获取 textarea 和按钮
+const questionInput = document.getElementById("question");
+const sendButton = document.getElementById("send-btn");
+const answerOutput = document.getElementById("answer");
+
+// 生成一个新的 session_id
+let sessionId = uuid.v4();
+
+// 点击发送按钮时
+sendButton.addEventListener('click', async () => {
+    const message = questionInput.value;
+    
+    // 如果用户没有输入问题
+    if (!message.trim()) {
+        alert("请输入问题！");
+        return;
     }
 
-    // 发送请求的函数
-    const send = async () => {
-        const question = document.getElementById("question").value;  // 获取用户输入
-        const session_id = uuidv4();  // 使用 uuid 库生成 session_id
+    try {
+        // 向后端发送请求
+        const response = await fetch("/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message: message,
+                session_id: sessionId
+            })
+        });
 
-        try {
-            const res = await fetch("/chat", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ message: question, session_id: session_id })
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                document.getElementById("answer").textContent = data.reply;  // 显示 AI 返回的回答
-            } else {
-                console.error("Request failed with status", res.status);
-                alert("请求失败，请稍后重试！");
-            }
-        } catch (error) {
-            console.error("Error during fetch:", error);
-            alert("发生错误，请检查网络或稍后再试。");
-        }
+        // 获取返回的 JSON 数据
+        const data = await response.json();
+        
+        // 将 AI 的回答显示在页面上
+        answerOutput.textContent = data.reply;
+        
+    } catch (error) {
+        console.error('请求失败:', error);
+        alert("请求失败，请稍后再试！");
     }
-
-    // 给发送按钮绑定点击事件
-    document.getElementById("send-btn").addEventListener("click", send);
 });
