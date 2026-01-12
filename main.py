@@ -1,21 +1,18 @@
 from fastapi import FastAPI
-from pydantic import BaseModel  # 导入 BaseModel
-import openai
+from pydantic import BaseModel
+import requests  # 使用 requests 库进行 API 调用
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 
-# 读取徒步知识文件
+# 读取徒步知识
 with open("hiking_knowledge.txt", "r", encoding="utf-8") as f:
     HIKING_KNOWLEDGE = f.read()
 
-# 设置OpenAI API密钥
-openai.api_key = "sk-f05f28f51f7b4b49aeb45ec3391efe61"
-openai.api_base = "https://api.deepseek.com/v1"  # 替换为你自己的 OpenAI API 网址
-
+# 初始化 FastAPI 应用
 app = FastAPI()
 
-# 存储会话的字典
+# 会话记录
 SESSIONS = {}
 
 # 静态文件配置
@@ -24,6 +21,10 @@ app.mount(
     StaticFiles(directory="static"),
     name="static",
 )
+
+# DeepSeek API 的相关配置
+API_KEY = "sk-f05f28f51f7b4b49aeb45ec3391efe61"
+API_URL = "https://api.deepseek.com/v1/chat/completions"
 
 # 系统提示信息
 SYSTEM_PROMPT = """
@@ -52,17 +53,15 @@ Day 3：
 以清单形式给出必要装备
 """
 
-# 定义请求体
+# 请求数据模型
 class ChatReq(BaseModel):
     message: str
     session_id: str
 
-# 根路由，返回index.html
 @app.get("/")
 def index():
     return FileResponse("static/index.html")
 
-# 聊天路由
 @app.post("/chat")
 def chat(req: ChatReq):
     session_id = req.session_id
@@ -82,19 +81,28 @@ def chat(req: ChatReq):
     messages.extend(history)  # ⭐ 历史对话
     messages.append({"role": "user", "content": req.message})
 
-    # 请求 OpenAI 接口生成回复
-    try:
-        resp = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # 使用支持的模型
-            messages=messages
-        )
-        reply = resp.choices[0].message['content']
+    # 调用 DeepSeek API
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json",
+    }
 
-        # 更新会话记录
+    data = {
+        "model": "deepseek-chat",  # 你使用的 DeepSeek 模型
+        "messages": messages  # 消息内容
+    }
+
+    # 发送请求到 DeepSeek API
+    response = requests.post(API_URL, headers=headers, json=data)
+
+    if response.status_code == 200:
+        reply = response.json()
+        message = reply['choices'][0]['message']['content']
+
+        # 保存历史对话
         history.append({"role": "user", "content": req.message})
-        history.append({"role": "assistant", "content": reply})
+        history.append({"role": "assistant", "content": message})
 
-        return {"reply": reply}
-
-    except Exception as e:
-        return {"error": str(e)}
+        return {"reply": message}
+    else:
+        return {"error": "API 请求失败", "details": response.text}
