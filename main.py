@@ -23,7 +23,7 @@ app.mount(
 )
 
 # DeepSeek API 的相关配置
-API_KEY = "sk-f05f28f51f7b4b49aeb45ec3391efe61"
+API_KEY = "sk-4148282254584ddc8e6b25ef32476aac"
 API_URL = "https://api.deepseek.com/v1/chat/completions"
 
 # 系统提示信息
