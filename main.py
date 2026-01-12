@@ -1,7 +1,31 @@
+from fastapi import FastAPI
+from pydantic import BaseModel  # 导入 BaseModel
 import openai
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 
-openai.api_key = "sk-f05f28f51f7b4b49aeb45ec3391efe61"  # 你的API密钥
+# 读取徒步知识文件
+with open("hiking_knowledge.txt", "r", encoding="utf-8") as f:
+    HIKING_KNOWLEDGE = f.read()
 
+# 设置OpenAI API密钥
+openai.api_key = "sk-f05f28f51f7b4b49aeb45ec3391efe61"
+openai.api_base = "https://api.deepseek.com/v1"  # 替换为你自己的 OpenAI API 网址
+
+app = FastAPI()
+
+# 存储会话的字典
+SESSIONS = {}
+
+# 静态文件配置
+app.mount(
+    "/static",
+    StaticFiles(directory="static"),
+    name="static",
+)
+
+# 系统提示信息
 SYSTEM_PROMPT = """
 你是一名有10年以上经验的徒步旅行向导，主要服务对象是普通徒步爱好者和初级徒步者。
 
@@ -28,10 +52,17 @@ Day 3：
 以清单形式给出必要装备
 """
 
+# 定义请求体
 class ChatReq(BaseModel):
     message: str
     session_id: str
 
+# 根路由，返回index.html
+@app.get("/")
+def index():
+    return FileResponse("static/index.html")
+
+# 聊天路由
 @app.post("/chat")
 def chat(req: ChatReq):
     session_id = req.session_id
@@ -51,6 +82,7 @@ def chat(req: ChatReq):
     messages.extend(history)  # ⭐ 历史对话
     messages.append({"role": "user", "content": req.message})
 
+    # 请求 OpenAI 接口生成回复
     try:
         resp = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",  # 使用支持的模型
@@ -58,6 +90,7 @@ def chat(req: ChatReq):
         )
         reply = resp.choices[0].message['content']
 
+        # 更新会话记录
         history.append({"role": "user", "content": req.message})
         history.append({"role": "assistant", "content": reply})
 
