@@ -1,86 +1,44 @@
-// =======================
-// 1️⃣ 会话 ID（前端唯一标识）
-// =======================
-let sessionId = localStorage.getItem("session_id")
-if (!sessionId) {
-  sessionId = crypto.randomUUID()
-  localStorage.setItem("session_id", sessionId)
-}
+import { v4 as uuidv4 } from 'uuid';
 
-// =======================
-// 2️⃣ 聊天记录数组（你问的核心）
-// =======================
-let chatHistory = []
+document.addEventListener("DOMContentLoaded", function() {
+    // 检查浏览器是否支持 crypto.randomUUID()，如果不支持，则使用 uuid 库生成 UUID
+    if (!crypto.randomUUID) {
+        crypto.randomUUID = function () {
+            // Polyfill UUID生成方法（简化版示例）
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        };
+    }
 
-// 页面刷新不丢记录
-const savedHistory = localStorage.getItem("chat_history")
-if (savedHistory) {
-  chatHistory = JSON.parse(savedHistory)
-}
+    // 发送请求的函数
+    const send = async () => {
+        const question = document.getElementById("question").value;  // 获取用户输入
+        const session_id = uuidv4();  // 使用 uuid 库生成 session_id
 
-// =======================
-// 3️⃣ DOM 元素
-// =======================
-const chatBox = document.getElementById("chat-box")
-const input = document.getElementById("question")
-const sendBtn = document.getElementById("send-btn")
+        try {
+            const res = await fetch("/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ message: question, session_id: session_id })
+            });
 
-// =======================
-// 4️⃣ 渲染聊天记录
-// =======================
-function renderChat() {
-  chatBox.innerHTML = ""
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById("answer").textContent = data.reply;  // 显示 AI 返回的回答
+            } else {
+                console.error("Request failed with status", res.status);
+                alert("请求失败，请稍后重试！");
+            }
+        } catch (error) {
+            console.error("Error during fetch:", error);
+            alert("发生错误，请检查网络或稍后再试。");
+        }
+    }
 
-  chatHistory.forEach(item => {
-    const div = document.createElement("div")
-    div.className = item.role
-    div.innerText = item.content
-    chatBox.appendChild(div)
-  })
-
-  chatBox.scrollTop = chatBox.scrollHeight
-}
-
-// 初始渲染
-renderChat()
-
-// =======================
-// 5️⃣ 发送消息
-// =======================
-sendBtn.onclick = async () => {
-  const question = input.value.trim()
-  if (!question) return
-
-  // 5.1 用户消息入数组
-  chatHistory.push({
-    role: "user",
-    content: question
-  })
-  renderChat()
-  input.value = ""
-
-  // 5.2 请求后端
-  const res = await fetch("/chat", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      message: question,
-      session_id: sessionId
-    })
-  })
-
-  const data = await res.json()
-
-  // 5.3 AI 回复入数组
-  chatHistory.push({
-    role: "assistant",
-    content: data.reply
-  })
-
-  // 5.4 本地持久化
-  localStorage.setItem("chat_history", JSON.stringify(chatHistory))
-
-  renderChat()
-}
+    // 给发送按钮绑定点击事件
+    document.getElementById("send-btn").addEventListener("click", send);
+});
