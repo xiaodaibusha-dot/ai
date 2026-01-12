@@ -1,12 +1,13 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-import openai
+import openai  # 使用 OpenAI SDK，假设它是 DeepSeek 的兼容库
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 
-# 使用 DeepSeek API 的客户端配置
-client = openai.Client(api_key="your_api_key", base_url="https://api.deepseek.com/v1")
+# 设置 DeepSeek API 的 api_key 和 base_url
+openai.api_key = "sk-5c82d1f3a3a34391b1867d62b47084b7"  # 替换为你的 API key
+openai.api_base = "https://api.deepseek.com/v1"  # 设置为 DeepSeek API 的基础 URL
 
 app = FastAPI()
 
@@ -48,16 +49,20 @@ def chat(req: ChatReq):
     messages.extend(history)
     messages.append({"role": "user", "content": req.message})
 
-    # 请求 DeepSeek API 生成回复
-    resp = client.chat.completions.create(
-        model="deepseek-chat",  # 使用 DeepSeek 模型
-        messages=messages
-    )
+    try:
+        # 请求 DeepSeek API 生成回复
+        resp = openai.ChatCompletion.create(
+            model="deepseek-chat",  # 使用 DeepSeek 模型
+            messages=messages
+        )
 
-    reply = resp.choices[0].message.content
+        reply = resp['choices'][0]['message']['content']
 
-    # 更新会话历史
-    history.append({"role": "user", "content": req.message})
-    history.append({"role": "assistant", "content": reply})
+        # 更新会话历史
+        history.append({"role": "user", "content": req.message})
+        history.append({"role": "assistant", "content": reply})
 
-    return {"reply": reply}
+        return {"reply": reply, "history": history}
+    except Exception as e:
+        return {"error": f"API 请求失败: {str(e)}"}
+
