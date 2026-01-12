@@ -1,13 +1,13 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-import openai  # 使用 OpenAI SDK，假设它是 DeepSeek 的兼容库
+import requests  # 导入 requests 库来发送 HTTP 请求
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 
 # 设置 DeepSeek API 的 api_key 和 base_url
-openai.api_key = "sk-5c82d1f3a3a34391b1867d62b47084b7"  # 替换为你的 API key
-openai.api_base = "https://api.deepseek.com/v1"  # 设置为 DeepSeek API 的基础 URL
+API_KEY = "sk-5c82d1f3a3a34391b1867d62b47084b7"  # 替换为你的 API key
+API_BASE_URL = "https://api.deepseek.com/v1/chat/completions"  # DeepSeek 的 API URL（假设是这个）
 
 app = FastAPI()
 
@@ -44,25 +44,37 @@ def chat(req: ChatReq):
 
     history = SESSIONS[session_id]
 
-    # 构造 messages（系统提示 + 历史对话 + 当前用户输入）
+    # 构造消息（系统提示 + 历史对话 + 当前用户输入）
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     messages.extend(history)
     messages.append({"role": "user", "content": req.message})
 
+    # 请求 DeepSeek API 生成回复
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json",
+    }
+    
+    payload = {
+        "model": "deepseek-chat",  # 使用 DeepSeek 模型（这里可以根据实际模型名修改）
+        "messages": messages
+    }
+    
     try:
-        # 请求 DeepSeek API 生成回复
-        resp = openai.ChatCompletion.create(
-            model="deepseek-chat",  # 使用 DeepSeek 模型
-            messages=messages
-        )
+        # 发起 HTTP 请求
+        response = requests.post(API_BASE_URL, json=payload, headers=headers)
+        
+        if response.status_code == 200:
+            # 解析 API 返回的结果
+            resp_data = response.json()
+            reply = resp_data['choices'][0]['message']['content']
 
-        reply = resp['choices'][0]['message']['content']
+            # 更新会话历史
+            history.append({"role": "user", "content": req.message})
+            history.append({"role": "assistant", "content": reply})
 
-        # 更新会话历史
-        history.append({"role": "user", "content": req.message})
-        history.append({"role": "assistant", "content": reply})
-
-        return {"reply": reply, "history": history}
+            return {"reply": reply, "history": history}
+        else:
+            return {"error": f"API 请求失败: {response.text}"}
     except Exception as e:
-        return {"error": f"API 请求失败: {str(e)}"}
-
+        return {"error": f"请求失败: {str(e)}"}
