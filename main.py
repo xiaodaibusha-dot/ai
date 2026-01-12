@@ -9,7 +9,7 @@ with open("hiking_knowledge.txt", "r", encoding="utf-8") as f:
     HIKING_KNOWLEDGE = f.read()
 
 # 请使用你正确的 API 密钥
-openai.api_key = "your_api_key"
+openai.api_key = "sk-5c82d1f3a3a34391b1867d62b47084b7"
 openai.api_base = "https://api.deepseek.com/v1"  # 设置 Deepseek API 基本地址
 
 app = FastAPI()
