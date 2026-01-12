@@ -8,19 +8,16 @@
 </head>
 <body>
     <div class="container">
-        <div class="box">
+        <div class="chat-box" id="chat-box">
             <h2>🌄 徒步旅行 AI 智能体</h2>
+            <!-- 历史对话显示区域 -->
+            <div id="conversation-history"></div>
+        </div>
 
-            <!-- 用户输入框 -->
-            <textarea id="question" placeholder="例如：我10月想去川西徒步，3天，体力一般" rows="4" cols="50"></textarea>
-            <br />
-
-            <!-- 发送按钮 -->
+        <!-- 用户输入框和发送按钮固定在底部 -->
+        <div class="input-box">
+            <textarea id="question" placeholder="请输入您的问题" rows="4" cols="50"></textarea>
             <button id="send-btn">发送</button>
-
-            <h3>AI 建议：</h3>
-            <div id="chat-box"></div>  <!-- 显示历史对话 -->
-
         </div>
     </div>
 
@@ -28,6 +25,7 @@
     <script src="https://cdn.jsdelivr.net/npm/uuid@8.3.2/dist/umd/uuid.min.js"></script>
 
     <!-- 引入chat.js -->
-    <script src="/static/chat.js"></script>
+    <script src="/static/chat.js"></script>  
+    <script type="module" src="/static/chat.js"></script>  
 </body>
 </html>
