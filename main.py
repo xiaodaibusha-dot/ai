@@ -8,9 +8,7 @@ import os
 with open("hiking_knowledge.txt", "r", encoding="utf-8") as f:
     HIKING_KNOWLEDGE = f.read()
 
-
-client = openai(api_key="sk-f05f28f51f7b4b49aeb45ec3391efe61",
-    base_url="https://api.deepseek.com/v1")
+openai.api_key = "sk-f05f28f51f7b4b49aeb45ec3391efe61"
 
 app = FastAPI()
 
@@ -75,7 +73,7 @@ def chat(req: ChatReq):
     messages.extend(history)  # ⭐ 历史对话
     messages.append({"role": "user", "content": req.message})
 
-    resp = client.chat.completions.create(
+    resp = openai.ChatCompletion.create(
         model="deepseek-chat",
         messages=messages
     )
