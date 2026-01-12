@@ -1,24 +1,6 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
 import openai
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-import os
 
-with open("hiking_knowledge.txt", "r", encoding="utf-8") as f:
-    HIKING_KNOWLEDGE = f.read()
-
-openai.api_key = "sk-f05f28f51f7b4b49aeb45ec3391efe61"
-
-app = FastAPI()
-
-SESSIONS = {}
-
-app.mount(
-    "/static",
-    StaticFiles(directory="static"),
-    name="static",
-)
+openai.api_key = "sk-f05f28f51f7b4b49aeb45ec3391efe61"  # 你的API密钥
 
 SYSTEM_PROMPT = """
 你是一名有10年以上经验的徒步旅行向导，主要服务对象是普通徒步爱好者和初级徒步者。
@@ -49,10 +31,6 @@ Day 3：
 class ChatReq(BaseModel):
     message: str
     session_id: str
-   
-@app.get("/")
-def index():
-    return FileResponse("static/index.html")
 
 @app.post("/chat")
 def chat(req: ChatReq):
@@ -73,14 +51,17 @@ def chat(req: ChatReq):
     messages.extend(history)  # ⭐ 历史对话
     messages.append({"role": "user", "content": req.message})
 
-    resp = openai.ChatCompletion.create(
-        model="deepseek-chat",
-        messages=messages
-    )
-    
-    reply = resp.choices[0].message.content
+    try:
+        resp = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # 使用支持的模型
+            messages=messages
+        )
+        reply = resp.choices[0].message['content']
 
-    history.append({"role": "user", "content": req.message})
-    history.append({"role": "assistant", "content": reply})
+        history.append({"role": "user", "content": req.message})
+        history.append({"role": "assistant", "content": reply})
 
-    return {"reply": reply}
+        return {"reply": reply}
+
+    except Exception as e:
+        return {"error": str(e)}
