@@ -1,28 +1,32 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8" />
-  <title>徒步旅行 AI 智能体</title>
-  <link rel="stylesheet" href="/static/style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌄 徒步旅行 AI 智能体</title>
+    <link rel="stylesheet" href="/static/style.css">  <!-- 引入自定义的样式 -->
 </head>
-
 <body>
-  <div class="app">
-    <header class="header">
-      🌄 徒步旅行 AI 智能体
-    </header>
+    <div class="container">
+        <div class="box">
+            <h2>🌄 徒步旅行 AI 智能体</h2>
+            
+            <!-- 用户输入框 -->
+            <textarea id="question" placeholder="例如：我10月想去川西徒步，3天，体力一般" rows="4" cols="50"></textarea>
+            <br />
+            
+            <!-- 发送按钮 -->
+            <button id="send-btn">发送</button>
 
-    <div id="chat-box" class="chat-box"></div>
-
-    <div class="input-area">
-      <textarea
-        id="question"
-        placeholder="例如：我10月想去川西徒步，3天，体力一般"
-      ></textarea>
-      <button id="send-btn">发送</button>
+            <h3>AI 建议：</h3>
+            <pre id="answer">这里显示AI的建议...</pre>  <!-- 显示AI的建议 -->
+        </div>
     </div>
-  </div>
 
-  <script src="/static/chat.js"></script>
+    <!-- 引入UUID库 -->
+    <script src="https://cdn.jsdelivr.net/npm/uuid@8.3.2/dist/umd/uuid.min.js"></script>
+    
+    <!-- 引入chat.js -->
+    <script src="/static/chat.js"></script>  
 </body>
 </html>
