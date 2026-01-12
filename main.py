@@ -1,32 +1,25 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-import requests  # 使用 requests 库进行 API 调用
+import openai
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 
-# 读取徒步知识
 with open("hiking_knowledge.txt", "r", encoding="utf-8") as f:
     HIKING_KNOWLEDGE = f.read()
 
-# 初始化 FastAPI 应用
+# 请使用你的 Deepseek API 密钥
+client = openai.Client(api_key="your_api_key", base_url="https://api.deepseek.com/v1")
+
 app = FastAPI()
 
-# 会话记录
+# 存储会话的字典
 SESSIONS = {}
 
-# 静态文件配置
-app.mount(
-    "/static",
-    StaticFiles(directory="static"),
-    name="static",
-)
+# 静态文件目录
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# DeepSeek API 的相关配置
-API_KEY = "sk-4148282254584ddc8e6b25ef32476aac"
-API_URL = "https://api.deepseek.com/v1/chat/completions"
-
-# 系统提示信息
+# 系统提示
 SYSTEM_PROMPT = """
 你是一名有10年以上经验的徒步旅行向导，主要服务对象是普通徒步爱好者和初级徒步者。
 
@@ -53,7 +46,6 @@ Day 3：
 以清单形式给出必要装备
 """
 
-# 请求数据模型
 class ChatReq(BaseModel):
     message: str
     session_id: str
@@ -66,43 +58,35 @@ def index():
 def chat(req: ChatReq):
     session_id = req.session_id
 
-    # 1️⃣ 如果是新会话，初始化
+    # 如果会话不存在，初始化
     if session_id not in SESSIONS:
         SESSIONS[session_id] = []
 
     history = SESSIONS[session_id]
 
-    # 2️⃣ 组装 messages（system + 历史 + 当前用户输入）
+    # 组装消息
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "system", "content": f"徒步参考知识：\n{HIKING_KNOWLEDGE}"},
     ]
+    
+    messages.extend(history)  # 添加历史对话
+    messages.append({"role": "user", "content": req.message})  # 添加当前用户输入
 
-    messages.extend(history)  # ⭐ 历史对话
-    messages.append({"role": "user", "content": req.message})
+    # 通过模型获取回应
+    try:
+        resp = client.chat.completions.create(
+            model="deepseek-chat", 
+            messages=messages
+        )
 
-    # 调用 DeepSeek API
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json",
-    }
+        reply = resp.choices[0].message.content
 
-    data = {
-        "model": "deepseek-chat",  # 你使用的 DeepSeek 模型
-        "messages": messages  # 消息内容
-    }
-
-    # 发送请求到 DeepSeek API
-    response = requests.post(API_URL, headers=headers, json=data)
-
-    if response.status_code == 200:
-        reply = response.json()
-        message = reply['choices'][0]['message']['content']
-
-        # 保存历史对话
+        # 更新历史对话
         history.append({"role": "user", "content": req.message})
-        history.append({"role": "assistant", "content": message})
+        history.append({"role": "assistant", "content": reply})
 
-        return {"reply": message}
-    else:
-        return {"error": "API 请求失败", "details": response.text}
+        return {"reply": reply}
+    
+    except Exception as e:
+        return {"error": f"API 请求失败: {str(e)}"}
